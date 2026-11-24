@@ -65,9 +65,10 @@ function doPost(e) {
     const previous = batchId ? findBatch_(sheet, batchId) : null;
     if (previous) {
       const existing = sheet.getRange(previous.getRow(), 2, 1, 3).getValues()[0];
-      const previousName = String(existing[0]).replace(/^'/, '');
-      const previousEmail = String(existing[1]).replace(/^'/, '');
-      if (previousName !== userName || previousEmail !== userEmail || String(existing[2]) !== logText) {
+      const previousName = String(existing[0]);
+      const previousEmail = String(existing[1]);
+      if (![userName, safeCellText_(userName)].includes(previousName)
+        || ![userEmail, safeCellText_(userEmail)].includes(previousEmail) || String(existing[2]) !== logText) {
         throw new Error('相同 batchId 已存在，但資料內容不同；未重複寫入。');
       }
       return textOutput_('OK');
@@ -131,7 +132,7 @@ function requiredText_(value, field, maxLength) {
 function safeCellText_(value) {
   // 使用者輸入以 = 開頭時，appendRow 原本可能把它當成公式；加上文字前綴。
   const text = String(value);
-  return /^[=+\-@]/.test(text) ? "'" + text : text;
+  return /^[=+\-@']/.test(text) ? "'" + text : text;
 }
 
 function errorMessage_(error) {

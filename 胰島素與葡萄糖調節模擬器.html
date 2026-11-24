@@ -220,7 +220,7 @@
   <script id="activity-log-script">
     'use strict';
     // 部署後可直接填入 /exec 網址；管理者設定也可在本瀏覽器儲存網址。
-    const GAS_WEB_APP_URL = '';
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzShqv0c1x_jDV6yNz6kT8bHEmokFYr1zQOOMIv0dO2tBPvLH5IIz-e_1xsLvJ-OaeJ/exec';
     let userName = '';
     let userEmail = '';
 
@@ -713,7 +713,8 @@
       $('reset-button').addEventListener('click',reset);
       $('info-button').addEventListener('click',() => ui.dialog.showModal());
       $('close-dialog').addEventListener('click',() => ui.dialog.close());
-      ui.dialog.addEventListener('click',event => { if (event.target === ui.dialog) { const r=ui.dialog.getBoundingClientRect(); if (event.clientX<r.left || event.clientX>r.right || event.clientY<r.top || event.clientY>r.bottom) ui.dialog.close(); } });
+      ui.dialog.addEventListener('click',event => { if (event.target === ui.dialog) { const r=ui.dialog.getBoundingClientRect(); if (event.clientX<r.left || event.clientX>r.right || event.clientY<r.top || event.clientY>r.bottom) {ui.dialog.close();activityLogger.record('dialog_close','model-dialog',{source:'backdrop'});} } });
+      ui.dialog.addEventListener('cancel',() => activityLogger.record('dialog_close','model-dialog',{source:'escape'}));
       document.addEventListener('keydown',event => {
         if (event.repeat || event.altKey || event.ctrlKey || event.metaKey || !activityLogger.hasUser() || document.querySelector('dialog[open]') || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName) || event.target.isContentEditable) return;
         if (event.key.toLowerCase() === 'a' && !ui.glucoseButton.disabled) { event.preventDefault(); ui.glucoseButton.click(); }
