@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f2f6f8">
+  <meta name="description" content="透過血管、葡萄糖粒子、細胞與血糖儀表，觀察胰島素促進細胞攝取葡萄糖的高中生物互動模擬。">
+  <title>血糖調節實驗室｜胰島素與葡萄糖模擬器</title>
+  <style>
+    :root { color-scheme: light; --ink:#203747; --muted:#617783; --line:#dce6eb; --paper:#fff; --teal:#087e7d; --orange:#b66611; --blue:#3c78b2; font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#f2f6f8; color:var(--ink); }
+    button { font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+    button:focus-visible, a:focus-visible { outline:3px solid #277fbd; outline-offset:4px; }
+    button:disabled { cursor:default; }
+    button, .card { -webkit-user-select:none; user-select:none; }
+    .app { width:min(1480px,100%); height:100svh; margin:0 auto; padding:22px 28px 14px; display:grid; grid-template-rows:auto minmax(0,1fr) auto; gap:18px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .brand { display:flex; align-items:center; gap:13px; min-width:0; }
+    .brand-icon { width:48px; height:48px; padding:10px; background:#e0f0ed; border-radius:16px; flex-shrink:0; }
+    h1 { margin:0; font-size:clamp(22px,2.3vw,30px); letter-spacing:.035em; line-height:1.4; font-weight:750; }
+    .subtitle { margin:4px 0 0; color:var(--muted); font-size:14px; line-height:1.5; }
+    .top-actions { display:flex; gap:14px; align-items:center; flex-shrink:0; }
+    .subject { color:var(--teal); font-size:13px; font-weight:650; white-space:nowrap; }
+    .reset { display:flex; align-items:center; justify-content:center; gap:7px; padding:10px 13px; background:#fff; border:1px solid var(--line); border-radius:11px; color:var(--ink); font-size:14px; min-height:44px; }
+    .reset:hover { background:#e9f1f5; }
+    .reset svg { width:17px; height:17px; }
+    .lab { display:grid; grid-template-columns:minmax(0,1fr) 292px; gap:18px; min-height:0; }
+    .stage-column { min-width:0; min-height:0; display:grid; grid-template-rows:minmax(0,1fr) 104px; gap:14px; }
+    .card { background:var(--paper); border:1px solid var(--line); border-radius:22px; box-shadow:0 3px 10px #2d506003; }
+    .scene { min-height:0; display:grid; grid-template-rows:auto minmax(0,1fr) auto; overflow:hidden; }
+    .scene-top { padding:18px 22px 0; display:flex; justify-content:space-between; gap:10px; align-items:center; }
+    .scene-heading { font-size:17px; margin:0; font-weight:700; }
+    .legend { display:flex; gap:14px; align-items:center; font-size:13px; color:var(--muted); }
+    .legend-item { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+    .legend svg { width:14px; height:14px; flex-shrink:0; }
+    .diagram-wrap { min-height:0; position:relative; padding:0 6px; }
+    #simulation { display:block; width:100%; height:100%; overflow:visible; }
+    .svg-label { font-family:inherit; font-size:19px; font-weight:650; fill:var(--ink); }
+    .svg-small { font-family:inherit; font-size:15px; fill:var(--muted); }
+    .cell-name { font-size:18px; fill:#367775; font-weight:650; font-family:inherit; }
+    .receptor { fill:#f2fcf9; stroke:#528c87; stroke-width:5; stroke-linecap:round; stroke-linejoin:round; transition:stroke .25s,filter .25s; }
+    .signal-on .receptor { stroke:#029e8e; filter:drop-shadow(0 0 5px #4bcab477); }
+    #pancreas-shape { transition:fill .3s; }
+    .signal-on #pancreas-shape { fill:#b5e5d3; }
+    .signal-ring { opacity:0; transition:opacity .3s; }
+    .signal-on .signal-ring { opacity:1; }
+    .scene-bottom { margin:0 18px 16px; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px; padding:13px 15px; border-radius:13px; background:#f1f7f8; }
+    .observation { min-width:0; }
+    .observation-label { color:var(--teal); font-size:12px; font-weight:750; letter-spacing:.08em; display:block; margin-bottom:4px; }
+    #observation { margin:0; font-size:14px; line-height:1.65; min-height:2em; }
+    .counts { display:flex; gap:14px; padding-left:14px; border-left:1px solid #d7e4e6; }
+    .count { text-align:center; min-width:36px; }
+    .count strong { display:block; font-size:23px; line-height:1.2; font-variant-numeric:tabular-nums; }
+    .count span { display:block; color:var(--muted); font-size:12px; margin-top:4px; white-space:nowrap; }
+    .controls { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .action { display:flex; align-items:center; gap:14px; padding:16px 20px; text-align:left; border:1px solid; border-radius:18px; min-width:0; transition:transform .15s,box-shadow .15s,background .15s; }
+    .action:hover:enabled { transform:translateY(-2px); box-shadow:0 5px 16px #2339470a; }
+    .action:active:enabled { transform:translateY(1px); }
+    .action-a { background:#fff6e9; border-color:#ead4b5; color:#84500c; }
+    .action-a:hover:enabled { background:#ffefd7; }
+    .action-b { background:#e8f5f0; border-color:#bfdfd4; color:#096761; }
+    .action-b:hover:enabled { background:#dcf0e7; }
+    .action:disabled { opacity:.58; }
+    .key { width:44px; height:44px; border-radius:13px; display:grid; place-items:center; font-weight:750; font-size:20px; flex-shrink:0; background:#fff9; border:1px solid currentColor; }
+    .action-title { display:block; font-size:18px; font-weight:750; line-height:1.45; }
+    .action-desc { display:block; font-size:13px; line-height:1.6; margin-top:4px; opacity:.85; }
+    .sidebar { min-height:0; display:grid; grid-template-rows:auto minmax(0,1fr); gap:14px; }
+    .meter-panel { padding:20px 22px 16px; }
+    .meter-heading { margin:0; display:flex; justify-content:space-between; align-items:center; font-size:17px; font-weight:700; }
+    .live { font-size:12px; display:flex; gap:5px; align-items:center; color:#52756d; font-weight:500; }
+    .live::before { content:""; width:6px; height:6px; border-radius:50%; background:#3b9e80; }
+    .reading { text-align:center; margin-top:7px; }
+    .value { font-size:59px; font-weight:720; letter-spacing:-.055em; font-variant-numeric:tabular-nums; line-height:1.15; }
+    .unit { display:block; color:var(--muted); font-size:12px; margin-top:0; }
+    .gauge { display:block; width:100%; height:auto; margin-top:0; overflow:visible; }
+    .gauge text { font-family:inherit; font-size:12px; fill:#6c808c; }
+    #needle { transition:transform .35s ease; }
+    .meter-status { text-align:center; margin-top:1px; }
+    .state-label { display:inline-block; background:#e5f4ec; color:#177463; padding:6px 13px; border-radius:20px; font-size:14px; font-weight:700; }
+    .meter-panel[data-state="low"] .state-label { background:#e8f1fc; color:#2b6097; }
+    .meter-panel[data-state="high"] .state-label { background:#fff0dc; color:#9e5d0c; }
+    .meter-scale { display:flex; justify-content:space-between; gap:7px; margin-top:13px; padding-top:12px; border-top:1px solid #e6edf0; font-size:12px; color:var(--muted); }
+    .meter-scale span { display:flex; align-items:center; gap:4px; }
+    .swatch { display:inline-block; width:7px; height:7px; border-radius:2px; background:var(--blue); }
+    .swatch.mid { background:#37a78b; }
+    .swatch.high { background:#e7a040; }
+    .insight-panel { padding:20px 22px; overflow:hidden; }
+    .insight-panel h2 { margin:0 0 14px; font-size:16px; }
+    .steps { display:grid; gap:14px; margin:0; padding:0; list-style:none; }
+    .steps li { display:grid; grid-template-columns:26px 1fr; gap:10px; align-items:start; }
+    .step-number { display:grid; place-items:center; background:#ecf4f5; color:#487b7b; width:25px; height:25px; font-size:12px; font-weight:700; border-radius:8px; }
+    .steps strong { font-size:14px; line-height:1.5; display:block; }
+    .steps p { font-size:13px; line-height:1.65; color:var(--muted); margin:3px 0 0; }
+    .concept { font-size:12px; line-height:1.75; margin:17px 0 0; padding-top:13px; border-top:1px solid #e6edf0; color:#536c77; }
+    .footer { display:flex; align-items:center; justify-content:space-between; gap:12px; color:var(--muted); font-size:12px; line-height:1.6; }
+    .footer p { margin:0; }
+    .info-button { padding:5px 0 5px 8px; border:0; background:none; color:#486874; white-space:nowrap; text-decoration:underline; text-underline-offset:3px; min-height:32px; }
+    dialog { color:var(--ink); border:1px solid var(--line); border-radius:20px; width:min(540px,calc(100% - 32px)); max-height:85svh; padding:26px; box-shadow:0 18px 80px #18384833; }
+    dialog::backdrop { background:#17364766; backdrop-filter:blur(3px); }
+    dialog h2 { margin:0 0 16px; font-size:21px; }
+    dialog p, dialog li { font-size:15px; line-height:1.85; }
+    dialog ul { padding-left:22px; }
+    dialog a { color:var(--teal); }
+    .dialog-close { display:block; width:100%; margin-top:20px; min-height:44px; border:0; border-radius:10px; color:#fff; background:var(--teal); }
+    .footer-actions { display:flex; align-items:center; gap:12px; flex-shrink:0; }
+    .sync-button { max-width:170px; overflow:hidden; text-overflow:ellipsis; text-decoration:none; color:var(--teal); }
+    .sync-button[data-state="error"] { color:#9b5a12; }
+    .entry-dialog { width:min(480px,calc(100% - 28px)); }
+    .entry-eyebrow { margin:0 0 8px; color:var(--teal); font-size:13px; font-weight:700; }
+    .entry-dialog h2 { margin-bottom:10px; }
+    .entry-intro { margin:0 0 20px; color:var(--muted); }
+    .form-label { display:block; font-size:15px; font-weight:650; margin:15px 0 7px; }
+    .form-input { width:100%; min-height:47px; padding:11px 12px; border:1px solid #b7cbd1; border-radius:10px; background:#fff; color:var(--ink); font:inherit; font-size:16px; }
+    .form-input:focus { outline:3px solid #3b9e802c; border-color:var(--teal); }
+    .entry-note { color:var(--muted); font-size:13px; line-height:1.8; margin:16px 0 0; }
+    .form-error { color:#a1392c; font-size:14px; line-height:1.7; margin:12px 0 0; white-space:pre-wrap; }
+    .form-error:empty { display:none; }
+    .sync-summary { padding:12px 14px; border-radius:10px; background:#eff7f5; font-size:14px; line-height:1.8; }
+    .sync-detail { max-height:150px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; color:#89501b; font-size:13px; line-height:1.7; }
+    .sync-settings { margin-top:18px; font-size:14px; }
+    .sync-settings summary { cursor:pointer; color:var(--muted); }
+    .sync-settings p { font-size:13px; color:var(--muted); }
+    .small-action { min-height:42px; padding:9px 12px; border:1px solid #bdd3d5; border-radius:9px; background:#f1f8f6; color:var(--teal); font:inherit; font-size:14px; margin-top:12px; }
+    .sync-actions { display:flex; flex-wrap:wrap; gap:10px; }
+    @media (min-width:1400px) { .lab { grid-template-columns:minmax(0,1fr) 320px; } .meter-panel { padding:24px; } .insight-panel { padding:24px; } .insight-panel h2 { font-size:18px; } .steps strong { font-size:16px; } .steps p { font-size:14px; } }
+    @media (max-height:800px) and (min-width:761px) { .app { padding:18px 22px 10px; gap:14px; } .lab { gap:14px; } .stage-column { grid-template-rows:minmax(0,1fr) 96px; gap:12px; } .sidebar { gap:12px; } .meter-panel { padding:16px 20px 13px; } .value { font-size:51px; } .gauge { max-height:132px; } .meter-scale { margin-top:10px; padding-top:10px; } .insight-panel { padding:17px 20px; } .steps { gap:10px; } .steps p { font-size:12px; } .concept { margin-top:12px; padding-top:10px; } .scene-top { padding:16px 18px 0; } .scene-bottom { margin:0 14px 14px; padding:11px 13px; } }
+    @media (max-width:1050px) and (min-width:761px) { .subject { display:none; } .lab { grid-template-columns:minmax(0,1fr) 264px; } .action { padding:14px; gap:11px; } .action-title { font-size:17px; } .action-desc { font-size:12px; } .legend { gap:9px; font-size:12px; } .scene-heading { font-size:16px; } .scene-bottom { gap:8px; } .counts { gap:10px; padding-left:10px; } #observation { font-size:13px; } }
+    @media (max-width:760px) { .app { height:100svh; min-height:620px; padding:14px 14px 9px; gap:10px; } .brand { gap:9px; } .brand-icon { width:38px; height:38px; border-radius:12px; padding:8px; } h1 { font-size:21px; } .subtitle { font-size:12px; margin-top:2px; max-width:260px; } .subject { display:none; } .reset { font-size:12px; padding:8px; min-height:40px; gap:4px; } .top-actions { gap:0; } .lab { grid-template-columns:minmax(0,1fr); grid-template-rows:124px minmax(0,1fr); gap:10px; } .sidebar { grid-row:1; display:block; } .meter-panel { height:100%; position:relative; padding:12px 16px; display:grid; grid-template-columns:minmax(0,1fr) 154px; grid-template-rows:22px minmax(0,1fr) 22px; column-gap:10px; } .meter-heading { font-size:14px; grid-column:1; } .live { display:none; } .reading { grid-row:2; grid-column:1; text-align:left; margin:0; display:flex; gap:10px; align-items:center; } .value { font-size:42px; } .unit { font-size:11px; width:65px; line-height:1.5; } .gauge { grid-column:2; grid-row:1 / 4; width:154px; align-self:center; } .meter-status { grid-column:1; grid-row:3; text-align:left; margin:0; } .state-label { padding:3px 8px; font-size:11px; } .meter-scale { display:none; } .insight-panel { display:none; } .stage-column { grid-row:2; grid-template-rows:minmax(0,1fr) 84px; gap:10px; } .card { border-radius:17px; } .scene-top { padding:12px 13px 0; } .scene-heading { font-size:14px; } .legend { gap:8px; font-size:11px; } .legend svg { width:12px; height:12px; } .diagram-wrap { padding:0; } .scene-bottom { margin:0 10px 10px; padding:9px 10px; gap:7px; } .observation-label { font-size:10px; margin-bottom:2px; } #observation { font-size:12px; line-height:1.55; min-height:3.1em; } .counts { gap:9px; padding-left:9px; } .count { min-width:28px; } .count strong { font-size:20px; } .count span { font-size:10px; } .controls { gap:9px; } .action { border-radius:14px; padding:11px 10px; gap:8px; } .key { width:31px; height:36px; border-radius:9px; font-size:17px; } .action-title { font-size:15px; } .action-desc { font-size:10px; line-height:1.5; margin-top:3px; } .footer { font-size:10px; gap:6px; } .footer p { max-width:calc(100% - 74px); } .info-button { font-size:11px; } }
+    @media (max-width:370px) { .app { padding-left:9px; padding-right:9px; } h1 { font-size:18px; } .brand-icon { display:none; } .action { gap:6px; padding:9px 8px; } .key { width:27px; } .action-title { font-size:14px; } .action-desc { font-size:9px; } .meter-panel { grid-template-columns:minmax(0,1fr) 135px; } .gauge { width:135px; } }
+    @media (max-height:570px) and (min-width:761px) { .app { padding:10px 14px 5px; gap:8px; } h1 { font-size:21px; } .brand-icon { width:37px; height:37px; padding:8px; } .subtitle { display:none; } .lab { grid-template-columns:minmax(0,1fr) 224px; gap:10px; } .stage-column { grid-template-rows:minmax(0,1fr) 72px; gap:8px; } .sidebar { display:block; } .meter-panel { height:100%; padding:13px 18px; } .meter-heading { font-size:15px; } .value { font-size:44px; } .gauge { max-height:115px; } .insight-panel { display:none; } .scene-top { padding:10px 12px 0; } .scene-bottom { margin:0 10px 9px; padding:7px 10px; } .observation-label { display:none; } #observation { font-size:12px; min-height:0; } .count strong { font-size:18px; } .count span { font-size:10px; margin-top:1px; } .action { padding:10px 13px; } .key { width:35px; height:35px; } .action-title { font-size:16px; } .action-desc { font-size:11px; margin-top:1px; } .footer { font-size:10px; } .info-button { min-height:24px; } }
+    @media (prefers-reduced-motion:reduce) { *, *::before, *::after { transition:none !important; } }
+    @media (max-width:760px) { .footer-actions { gap:7px; } .sync-button { max-width:112px; } .footer p { max-width:calc(100% - 190px); } .entry-dialog { padding:22px; } .entry-dialog h2 { font-size:22px; } .entry-intro { font-size:14px; margin-bottom:13px; } .entry-note { font-size:12px; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2C13 8 6 14 6 20a10 10 0 0 0 20 0C26 14 19 8 16 2Z" fill="#087e7d"/><path d="M11 20a5 5 0 0 0 5 5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+        <div><h1>血糖調節實驗室</h1><p class="subtitle">按下按鈕，追蹤葡萄糖從血管到細胞的旅程。</p></div>
+      </div>
+      <div class="top-actions"><span class="subject">高中生物 · 互動模擬</span><button class="reset" id="reset-button" type="button" aria-label="重新開始模擬"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7" stroke-linecap="round" stroke-linejoin="round"/></svg>重新開始</button></div>
+    </header>
+    <main class="lab" aria-label="血糖調節互動模擬">
+      <div class="stage-column">
+        <section class="scene card" aria-labelledby="scene-heading">
+          <div class="scene-top"><h2 class="scene-heading" id="scene-heading">葡萄糖的移動</h2><div class="legend" aria-label="圖例"><span class="legend-item"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1 14 4.5v7L8 15l-6-3.5v-7Z" fill="#edb343" stroke="#bd7919"/></svg>葡萄糖</span><span class="legend-item"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m8 1 7 13H1Z" fill="#07988a"/></svg>胰島素</span></div></div>
+          <div class="diagram-wrap">
+            <svg id="simulation" viewBox="0 0 820 470" role="img" aria-labelledby="diagram-title diagram-desc">
+              <title id="diagram-title">血管與相鄰的肌肉細胞</title><desc id="diagram-desc">橘色六角形代表葡萄糖，綠色三角形代表胰島素。攝取葡萄糖後，血管中的粒子增加；分泌胰島素後，葡萄糖從血管移動到下方兩個肌肉細胞。</desc>
+              <defs>
+                <linearGradient id="blood-fill" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#fde2e0"/><stop offset=".52" stop-color="#fff0ed"/><stop offset="1" stop-color="#fbdedc"/></linearGradient>
+                <radialGradient id="cell-fill"><stop stop-color="#f1fbf7"/><stop offset="1" stop-color="#deeee9"/></radialGradient>
+                <linearGradient id="cell-nucleus" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#b5d9d0"/><stop offset="1" stop-color="#8ebfb3"/></linearGradient>
+                <clipPath id="vessel-clip"><rect x="30" y="140" width="760" height="125" rx="34"/></clipPath>
+              </defs>
+              <text x="47" y="117" class="svg-label">血管</text><text x="113" y="117" class="svg-small">葡萄糖隨血液流動</text>
+              <g id="pancreas" aria-label="胰臟"><path id="pancreas-shape" d="M593 69c9-20 30-21 42-18 14 4 24-11 39-8 18 3 22 19 39 18 19-2 29 8 28 19-1 16-24 22-44 15-14-6-27-1-42 2-24 6-49 2-62-10-5-4-5-11 0-18Z" fill="#d9eade" stroke="#84b29a" stroke-width="2"/><path d="M607 76c22-7 35 11 55-1 22-13 40 3 59 1" stroke="#98bdaa" stroke-width="2" fill="none"/><text x="662" y="28" text-anchor="middle" class="svg-small">胰臟分泌胰島素</text><path d="M661 104v24" stroke="#8ab2a1" stroke-width="2" stroke-dasharray="4 5"/><circle class="signal-ring" cx="663" cy="76" r="48" fill="none" stroke="#6fc8aa" stroke-width="2" stroke-dasharray="3 6"/></g>
+              <rect x="27" y="136" width="766" height="133" rx="38" fill="#edb7b2"/>
+              <rect x="31" y="143" width="758" height="119" rx="32" fill="url(#blood-fill)"/>
+              <path d="M63 146h691M63 259h691" stroke="#fff" stroke-opacity=".7" stroke-width="2"/>
+              <g clip-path="url(#vessel-clip)" opacity=".44" aria-hidden="true"><g transform="translate(115 188) rotate(-14)"><ellipse rx="22" ry="12" fill="#d77977"/><ellipse rx="12" ry="5" fill="#edb1a6"/></g><g transform="translate(352 232) rotate(12)"><ellipse rx="24" ry="12" fill="#d77977"/><ellipse rx="13" ry="5" fill="#edb1a6"/></g><g transform="translate(564 185) rotate(-18)"><ellipse rx="22" ry="12" fill="#d77977"/><ellipse rx="12" ry="5" fill="#edb1a6"/></g><g transform="translate(729 224) rotate(9)"><ellipse rx="21" ry="12" fill="#d77977"/><ellipse rx="12" ry="5" fill="#edb1a6"/></g></g>
+              <path d="M360 111h70m-9-7 9 7-9 7" stroke="#b7c7cc" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <g aria-label="兩個肌肉細胞"><ellipse cx="246" cy="370" rx="137" ry="80" fill="url(#cell-fill)" stroke="#9ac8b8" stroke-width="4"/><ellipse cx="246" cy="370" rx="130" ry="73" fill="none" stroke="#c3dfd3" stroke-width="1.5"/><ellipse cx="565" cy="370" rx="137" ry="80" fill="url(#cell-fill)" stroke="#9ac8b8" stroke-width="4"/><ellipse cx="565" cy="370" rx="130" ry="73" fill="none" stroke="#c3dfd3" stroke-width="1.5"/><ellipse cx="195" cy="387" rx="27" ry="20" transform="rotate(-15 195 387)" fill="url(#cell-nucleus)"/><ellipse cx="617" cy="385" rx="27" ry="20" transform="rotate(15 617 385)" fill="url(#cell-nucleus)"/><path d="M179 386c10-9 18 9 29-1M602 386c10-9 18 9 29-1" stroke="#79ab9e" stroke-width="2" fill="none"/><text x="246" y="352" text-anchor="middle" class="cell-name">肌肉細胞</text><text x="565" y="352" text-anchor="middle" class="cell-name">肌肉細胞</text></g>
+              <path class="receptor" d="M234 282v10q12 13 24 0v-10m-12 17v12"/>
+              <path class="receptor" d="M553 282v10q12 13 24 0v-10m-12 17v12"/>
+              <g aria-label="葡萄糖轉移路徑，與胰島素作用位置分開"><rect x="291" y="288" width="18" height="22" rx="5" fill="#f4fcf9" stroke="#83b5a7" stroke-width="2"/><path d="M297 291v16m6-16v16" stroke="#a7d0c2" stroke-width="2"/><rect x="502" y="288" width="18" height="22" rx="5" fill="#f4fcf9" stroke="#83b5a7" stroke-width="2"/><path d="M508 291v16m6-16v16" stroke="#a7d0c2" stroke-width="2"/></g>
+              <text x="405" y="315" text-anchor="middle" class="svg-small" id="receptor-label">胰島素作用於細胞</text>
+              <g id="glucose-layer" aria-hidden="true"></g>
+              <g id="insulin-layer" aria-hidden="true"></g>
+            </svg>
+          </div>
+          <div class="scene-bottom"><div class="observation"><span class="observation-label">觀察提示</span><p id="observation" role="status" aria-live="polite">先按 A 攝取葡萄糖，觀察血管與血糖儀表。</p></div><div class="counts" aria-label="葡萄糖粒子數"><div class="count"><strong id="blood-count">20</strong><span>血管內</span></div><div class="count"><strong id="cell-count">0</strong><span>細胞內</span></div></div></div>
+        </section>
+        <div class="controls" aria-label="實驗控制">
+          <button class="action action-a" id="glucose-button" type="button" aria-keyshortcuts="A"><span class="key" aria-hidden="true">A</span><span><span class="action-title">攝取葡萄糖</span><span class="action-desc">增加血管中的葡萄糖</span></span></button>
+          <button class="action action-b" id="insulin-button" type="button" aria-keyshortcuts="B"><span class="key" aria-hidden="true">B</span><span><span class="action-title" id="insulin-button-label">分泌胰島素</span><span class="action-desc">促進葡萄糖進入細胞</span></span></button>
+        </div>
+      </div>
+      <aside class="sidebar" aria-label="監測與學習說明">
+        <section class="meter-panel card" id="meter-panel" data-state="mid" aria-labelledby="meter-heading">
+          <h2 class="meter-heading" id="meter-heading">血糖監測<span class="live">即時</span></h2>
+          <div class="reading"><output class="value" id="glucose-value" aria-label="相對血糖指數">100</output><span class="unit">相對血糖指數 · 起始值 100</span></div>
+          <svg class="gauge" viewBox="0 0 260 157" role="meter" id="gauge" aria-label="相對血糖指數儀表，僅供教學示意" aria-valuemin="0" aria-valuemax="240" aria-valuenow="100" aria-valuetext="100，接近起始值">
+            <path d="M34 126a96 96 0 0 1 192 0" stroke="#edf2f4" stroke-width="24" fill="none" stroke-linecap="round"/>
+            <path d="M34 126a96 96 0 0 1 48-83.14" stroke="#71a6d4" stroke-width="18" fill="none" stroke-linecap="round"/>
+            <path d="M82 42.86A96 96 0 0 1 130 30" stroke="#48b395" stroke-width="18" fill="none"/>
+            <path d="M130 30a96 96 0 0 1 96 96" stroke="#e8b062" stroke-width="18" fill="none" stroke-linecap="round"/>
+            <path d="m49 126 6 0m75-78v6m75 72h6" stroke="#fff" stroke-width="2"/>
+            <text x="27" y="151">0</text><text x="61" y="27">80</text><text x="119" y="12">120</text><text x="222" y="151">240</text>
+            <g transform="translate(130 126)"><g id="needle" style="transform:rotate(-15deg)"><path d="m-4 0 4-70 4 70Z" fill="#254753"/></g><circle r="9" fill="#254753"/><circle r="3" fill="#fff"/></g>
+          </svg>
+          <div class="meter-status"><span class="state-label" id="state-label">接近起始值</span></div>
+          <div class="meter-scale" aria-hidden="true"><span><i class="swatch"></i>偏低</span><span><i class="swatch mid"></i>接近起始</span><span><i class="swatch high"></i>偏高</span></div>
+        </section>
+        <section class="insight-panel card" aria-labelledby="steps-heading"><h2 id="steps-heading">試著觀察這三件事</h2><ol class="steps"><li><span class="step-number">1</span><div><strong>葡萄糖進入血液</strong></div></li><li><span class="step-number">2</span><div><strong>胰島素傳遞訊號</strong></div></li><li><span class="step-number">3</span><div><strong>葡萄糖進入細胞</strong></div></li></ol><p class="concept">胰島素促進細胞攝取葡萄糖；它不會直接把血液中的葡萄糖分解掉。</p></section>
+      </aside>
+    </main>
+    <footer class="footer"><p>手動觀察模式：真實人體會依血糖變化調節胰島素分泌。數值與粒子皆為教學示意。</p><div class="footer-actions"><button class="info-button sync-button" id="sync-button" type="button" data-log-ignore data-state="pending" aria-label="查看操作紀錄儲存狀態">紀錄：請先填資料</button><button class="info-button" id="info-button" type="button">模型說明</button></div></footer>
+  </div>
+  <dialog id="model-dialog" aria-labelledby="model-title"><h2 id="model-title">這個模型呈現什麼？</h2><p>本模擬聚焦於胰島素促進肌肉細胞攝取葡萄糖的過程，以按鈕手動分開操作，便於觀察因果順序。</p><ul><li>起始有 20 顆血管粒子；每顆對應 5 點相對血糖指數。A 每次最多加入 6 顆；B 每次最多讓 6 顆進入細胞。</li><li>指數低於 80 顯示偏低、80–120 顯示接近起始值、超過 120 顯示偏高。這些是模型自訂區間，沒有 mg/dL 等生理單位，也不是醫學判讀標準。</li><li>上限為 240 點。葡萄糖轉移動畫會保留粒子總數，並在進入細胞時同步更新數值。</li><li>真實人體的胰島素由胰臟分泌，還涉及肝臟、升糖素、細胞代謝等機制；不同組織攝取葡萄糖的方式也有差異。本模型未呈現完整生理調節、真實濃度、劑量或時間。</li><li>電腦也可按鍵盤 A、B 操作；「重新開始」會還原所有粒子與數值。</li></ul><p>概念資料：<a href="https://www.niddk.nih.gov/health-information/diabetes/overview/what-is-diabetes" target="_blank" rel="noopener noreferrer">美國 NIDDK：胰島素與葡萄糖</a>。連線只在開啟此資料連結時需要，模擬器可離線使用。</p><button class="dialog-close" id="close-dialog" type="button">回到實驗</button></dialog>
+  <dialog id="identity-dialog" class="entry-dialog" aria-labelledby="identity-title">
+    <form id="identity-form" data-log-ignore>
+      <p class="entry-eyebrow">血糖調節實驗室</p><h2 id="identity-title">開始前，先認識你</h2>
+      <p class="entry-intro">請填寫姓名與 Email，讓這次實驗的操作紀錄能與你對應。</p>
+      <label class="form-label" for="user-name">姓名</label><input class="form-input" id="user-name" name="userName" type="text" autocomplete="name" maxlength="100" required placeholder="請輸入姓名">
+      <label class="form-label" for="user-email">Email</label><input class="form-input" id="user-email" name="userEmail" type="email" autocomplete="email" inputmode="email" maxlength="254" required placeholder="name@example.com" aria-describedby="identity-error">
+      <p class="entry-note">確認後，姓名、Email 與操作紀錄會送到本活動的 Google 試算表；未確認寫入前，會暫存在這個瀏覽器中。</p>
+      <p class="form-error" id="identity-error" role="alert"></p><button class="dialog-close" id="identity-confirm" type="submit">確認並開始</button>
+    </form>
+  </dialog>
+  <dialog id="sync-dialog" aria-labelledby="sync-title" data-log-ignore>
+    <h2 id="sync-title">操作紀錄儲存狀態</h2><div class="sync-summary" id="sync-summary" role="status" aria-live="polite"></div>
+    <p class="sync-detail" id="sync-error"></p><p class="entry-note">每 5 個操作事件自動送出一批。按「立即同步」或離開頁面時，會一併嘗試送出不足 5 個的剩餘事件。只有確認寫入後才移除暫存。</p>
+    <div class="sync-actions"><button class="small-action" id="retry-sync" type="button">立即同步</button><button class="small-action" id="export-pending" type="button">下載暫存備份</button></div>
+    <details class="sync-settings"><summary>管理者設定</summary><p>填入此專案部署為網頁應用程式後，結尾為 /exec 的網址。編輯器網址與試算表網址無法接收紀錄。</p><label class="form-label" for="gas-endpoint">GAS 網頁應用程式網址</label><input class="form-input" id="gas-endpoint" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off"><button class="small-action" id="save-endpoint" type="button">儲存網址並重試</button></details>
+    <button class="dialog-close" id="close-sync" type="button">回到實驗</button>
+  </dialog>
+  <script id="activity-log-script">
+    'use strict';
+    // 部署後可直接填入 /exec 網址；管理者設定也可在本瀏覽器儲存網址。
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzShqv0c1x_jDV6yNz6kT8bHEmokFYr1zQOOMIv0dO2tBPvLH5IIz-e_1xsLvJ-OaeJ/exec';
+    let userName = '';
+    let userEmail = '';
+
+    const activityLogger = (() => {
+      const STORAGE_KEY = 'insulin-glucose:activity:v1';
+      const ENDPOINT_KEY = 'insulin-glucose:gas-url:v1';
+      const BATCH_SIZE = 5;
+      const $log = id => document.getElementById(id);
+      const makeId = () => {
+        if (window.crypto.randomUUID) return window.crypto.randomUUID();
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+        return Array.from(bytes, byte => byte.toString(16).padStart(2,'0')).join('');
+      };
+      let state = {version:1,queue:[],buffer:[],profile:null,sessionId:makeId()};
+      let lastError = '';
+      let storageError = '';
+      let rawStoredText = '';
+      let unreadableStorage = false;
+      let sending = false;
+      let retryTimer = null;
+      let retryDelay = 3000;
+      let endpoint = '';
+      let initialized = false;
+      const inputTimers = new Map();
+      const lastInputValues = new WeakMap();
+
+      function endpointUrl(value) {
+        if (!value.trim()) return '';
+        const url = new URL(value.trim());
+        if (url.protocol !== 'https:' || url.hostname !== 'script.google.com'
+          || !/^\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url.pathname)) {
+          throw new Error('請填入 https://script.google.com/macros/s/…/exec 部署網址，不能使用編輯器網址。');
+        }
+        url.search = ''; url.hash = '';
+        return url.href;
+      }
+
+      function restore() {
+        try {
+          rawStoredText = localStorage.getItem(STORAGE_KEY) || '';
+          if (rawStoredText) {
+            const stored = JSON.parse(rawStoredText);
+            if (stored.version !== 1 || !Array.isArray(stored.queue) || !Array.isArray(stored.buffer)
+              || (stored.buffer.length && (!stored.profile || !stored.profile.userName || !stored.profile.userEmail))
+              || stored.queue.some(packet => !packet.userName || !packet.userEmail || !packet.log || !Array.isArray(packet.log.events))) {
+              throw new Error('暫存資料格式不正確；原有內容已保留，可下載備份後檢查。');
+            }
+            state = stored;
+            if (state.buffer.length) sealBuffer('resume');
+          }
+          state.profile = null;
+          state.sessionId = makeId();
+          endpoint = endpointUrl(GAS_WEB_APP_URL || localStorage.getItem(ENDPOINT_KEY) || '');
+        } catch (error) {
+          unreadableStorage = true;
+          storageError = '無法讀取本機暫存：' + error.message;
+        }
+      }
+
+      function persist() {
+        if (unreadableStorage) return false;
+        try {
+          localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+          storageError = '';
+          return true;
+        } catch (error) {
+          storageError = '無法寫入本機暫存：' + error.message + '。請先下載暫存備份，避免關閉後遺失尚未送出的資料。';
+          return false;
+        }
+      }
+
+      function packet(events,kind,profile=state.profile,sessionId=state.sessionId) {
+        return { userName:profile.userName,userEmail:profile.userEmail,
+          log:{version:1,batchId:makeId(),sessionId,kind,createdAt:new Date().toISOString(),events} };
+      }
+
+      function sealBuffer(reason) {
+        if (!state.buffer.length || !state.profile) return;
+        while (state.buffer.length) state.queue.push(packet(state.buffer.splice(0,BATCH_SIZE),reason));
+      }
+
+      function pendingCount() {
+        return state.buffer.length + state.queue.reduce((count,item) => count+item.log.events.length,0);
+      }
+
+      function updateStatus() {
+        const count = pendingCount();
+        const status = $log('sync-button');
+        if (!status) return;
+        status.textContent = !userName ? '紀錄：請先填資料' : sending ? '紀錄：儲存中…'
+          : count ? '紀錄：待送出 ' + count : '紀錄：已同步';
+        status.dataset.state = storageError || lastError || !endpoint ? 'error' : count ? 'pending' : 'saved';
+        status.title = storageError || lastError || (!endpoint ? '尚未設定 GAS 部署網址；資料仍留在暫存。' : '查看紀錄儲存狀態');
+        const profile = userName ? userName + '（' + userEmail + '）' : '尚未填寫使用者資料';
+        $log('sync-summary').textContent = profile + '\n待送出事件：' + count
+          + '；已成批：' + state.queue.length + '；未滿 5 個：' + state.buffer.length + '。';
+        $log('sync-summary').style.whiteSpace = 'pre-wrap';
+        $log('sync-error').textContent = storageError || lastError
+          || (!endpoint ? '尚未設定 GAS 部署網址。資料尚未送往 Google 試算表，請由管理者完成部署及網址設定。' : '');
+      }
+
+      function snapshot() {
+        return {relativeGlucose:Number($log('glucose-value').value),blood:Number($log('blood-count').textContent),
+          cell:Number($log('cell-count').textContent),insulinBusy:$log('insulin-button').getAttribute('aria-busy') === 'true'};
+      }
+
+      function record(type,target,details={}) {
+        if (!userName || !userEmail) return;
+        state.buffer.push({eventId:makeId(),timeStamp:new Date().toISOString(),type,target,...details,snapshot:snapshot()});
+        while (state.buffer.length >= BATCH_SIZE) state.queue.push(packet(state.buffer.splice(0,BATCH_SIZE),'events'));
+        persist();
+        updateStatus();
+        void pump();
+      }
+
+      function confirmViaJsonp(batchId) {
+        return new Promise((resolve,reject) => {
+          const callback = '__gasAck_' + makeId().replace(/-/g,'_');
+          const script = document.createElement('script');
+          const url = new URL(endpoint);
+          url.searchParams.set('action','ack');
+          url.searchParams.set('batchId',batchId);
+          url.searchParams.set('callback',callback);
+          const cleanup = () => {clearTimeout(timer);delete window[callback];script.remove();};
+          const timer = setTimeout(() => {cleanup();reject(new Error('無法讀取 GAS 的寫入確認；暫存仍保留。'));},15000);
+          window[callback] = result => {
+            cleanup();
+            if (!result || result.batchId !== batchId) {reject(new Error('GAS 確認批號不一致；暫存仍保留。'));return;}
+            if (result.status === 'ERROR') {reject(new Error(result.error));return;}
+            resolve(result.status === 'OK');
+          };
+          script.onerror = () => {cleanup();reject(new Error('無法連線至 GAS 確認端點；暫存仍保留。'));};
+          script.src = url.href;
+          script.referrerPolicy = 'no-referrer';
+          document.head.append(script);
+        });
+      }
+
+      async function sendPacket(item) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(),20000);
+        try {
+          // JSON 放在 text/plain 的 body，避免 application/json 引發不必要的跨來源預檢。
+          const response = await fetch(endpoint,{method:'POST',mode:'cors',credentials:'omit',redirect:'follow',
+            headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(item),
+            signal:controller.signal,keepalive:true});
+          const text = await response.text();
+          if (response.ok && text.trim() === 'OK') return;
+          const error = new Error(/^\s*</.test(text)
+            ? 'GAS 回傳了網頁而非 OK。請檢查部署網址、存取權限及是否使用最新版本。'
+            : text || 'HTTP ' + response.status);
+          error.gasResponse = true;
+          throw error;
+        } catch (error) {
+          if (error.gasResponse) throw error;
+          // 不把不透明回覆當成功。只讀查詢可確認「已寫入但回覆遺失」的批次。
+          if (await confirmViaJsonp(item.log.batchId)) return;
+          throw new Error('尚未確認這批紀錄寫入成功，將保留暫存並重試。');
+        } finally { clearTimeout(timeout); }
+      }
+
+      async function pump() {
+        if (sending || !state.queue.length || !endpoint || unreadableStorage) {updateStatus();return;}
+        sending = true;
+        clearTimeout(retryTimer);
+        updateStatus();
+        try {
+          while (state.queue.length) {
+            const current = state.queue[0];
+            await sendPacket(current);
+            // 只刪除已確認的批次；送出期間新增的事件仍留在原本佇列。
+            state.queue = state.queue.filter(item => item.log.batchId !== current.log.batchId);
+            lastError = '';
+            retryDelay = 3000;
+            persist();
+          }
+        } catch (error) {
+          lastError = error.message;
+          retryTimer = setTimeout(() => void pump(),retryDelay);
+          retryDelay = Math.min(retryDelay*2,60000);
+        } finally {sending = false;updateStatus();}
+      }
+
+      function flush(reason='manual') {
+        for (const [element,timer] of inputTimers) {clearTimeout(timer);inputTimers.delete(element);recordInput(element);}
+        sealBuffer(reason);
+        persist();
+        updateStatus();
+        return pump();
+      }
+
+      function recordInput(element) {
+        if (element.closest('[data-log-ignore]') || /^(password|hidden|file|submit|button)$/i.test(element.type)) return;
+        const value = element.type === 'checkbox' || element.type === 'radio' ? element.checked : String(element.value).slice(0,1000);
+        if (lastInputValues.get(element) === value) return;
+        lastInputValues.set(element,value);
+        record('input',element.id || element.name || element.tagName.toLowerCase(),{inputType:element.type || 'text',value});
+      }
+
+      function init() {
+        if (initialized) return;
+        initialized = true;
+        restore();
+        if (!unreadableStorage) persist();
+        $log('gas-endpoint').value = endpoint;
+        $log('identity-dialog').addEventListener('cancel',event => event.preventDefault());
+        $log('identity-form').addEventListener('submit',event => {
+          event.preventDefault();
+          const nameInput = $log('user-name');
+          const emailInput = $log('user-email');
+          const name = nameInput.value.trim();
+          const email = emailInput.value.trim();
+          nameInput.setCustomValidity(name ? '' : '請輸入姓名。');
+          emailInput.setCustomValidity(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '' : '請輸入有效的 Email，例如 name@example.com。');
+          if (!$log('identity-form').reportValidity()) return;
+          const previous = JSON.parse(JSON.stringify(state));
+          state.profile = {userName:name,userEmail:email};
+          state.queue.push(packet([{eventId:makeId(),timeStamp:new Date().toISOString(),type:'identity_confirm',target:'identity-form'}],'identify'));
+          if (!persist()) {state = previous;$log('identity-error').textContent = storageError;updateStatus();return;}
+          // 具名變數接住確認後的使用者資訊；每批 packet 另保存當時的身分。
+          userName = name;
+          userEmail = email;
+          $log('identity-dialog').close();
+          updateStatus();
+          void pump();
+        });
+        for (const id of ['user-name','user-email']) $log(id).addEventListener('input',event => {event.target.setCustomValidity('');$log('identity-error').textContent='';});
+        document.addEventListener('click',event => {
+          const element = event.target.closest && event.target.closest('button,a,[role="button"],[data-log-event]');
+          if (!element || element.closest('[data-log-ignore]')) return;
+          const labels = {'glucose-button':'攝取葡萄糖','insulin-button':'分泌胰島素'};
+          record('click',element.id || element.getAttribute('data-log-event') || element.tagName.toLowerCase(),
+            {label:(labels[element.id] || element.getAttribute('aria-label') || element.textContent.trim()).slice(0,120),
+              source:event.detail === 0 ? 'keyboard-or-assistive' : 'pointer'});
+        });
+        document.addEventListener('input',event => {
+          const element = event.target;
+          if (!element.matches('input,textarea,select') || element.closest('[data-log-ignore]')) return;
+          clearTimeout(inputTimers.get(element));
+          inputTimers.set(element,setTimeout(() => {inputTimers.delete(element);recordInput(element);},600));
+        });
+        document.addEventListener('change',event => {
+          const element = event.target;
+          if (!element.matches('input,textarea,select')) return;
+          clearTimeout(inputTimers.get(element));inputTimers.delete(element);recordInput(element);
+        });
+        $log('sync-button').addEventListener('click',() => {updateStatus();$log('sync-dialog').showModal();});
+        $log('close-sync').addEventListener('click',() => $log('sync-dialog').close());
+        $log('retry-sync').addEventListener('click',() => void flush('manual'));
+        $log('save-endpoint').addEventListener('click',() => {
+          try {
+            const next = endpointUrl($log('gas-endpoint').value);
+            if (!next) throw new Error('請先填入 GAS 的 /exec 網址。');
+            localStorage.setItem(ENDPOINT_KEY,next);
+            endpoint = next; lastError = '';
+            void flush('configured');
+          } catch (error) {lastError = error.message;updateStatus();}
+        });
+        $log('export-pending').addEventListener('click',() => {
+          const content = JSON.stringify({exportedAt:new Date().toISOString(),...state,
+            ...(unreadableStorage ? {unreadableStoredText:rawStoredText} : {})},null,2);
+          const url = URL.createObjectURL(new Blob([content],{type:'application/json'}));
+          const anchor = document.createElement('a');anchor.href=url;anchor.download='血糖實驗_待送出紀錄.json';anchor.click();
+          setTimeout(() => URL.revokeObjectURL(url),1000);
+        });
+        window.addEventListener('online',() => void pump());
+        window.addEventListener('pagehide',() => void flush('pagehide'));
+        document.addEventListener('visibilitychange',() => {if (document.visibilityState === 'hidden') void flush('hidden');});
+        updateStatus();
+        $log('identity-dialog').showModal();
+        void pump();
+      }
+      return {init,record,flush,hasUser:() => Boolean(userName && userEmail)};
+    })();
+  </script>
+  <script id="simulation-script">
+    'use strict';
+    (() => {
+      const SVG_NS = 'http://www.w3.org/2000/svg';
+      const INITIAL = 20;
+      const PER_ACTION = 6;
+      const MAX_BLOOD = 48;
+      const POINTS_PER_PARTICLE = 5;
+      const $ = id => document.getElementById(id);
+      const ui = {
+        svg:$('simulation'), glucoseLayer:$('glucose-layer'), insulinLayer:$('insulin-layer'),
+        glucoseButton:$('glucose-button'), insulinButton:$('insulin-button'), insulinLabel:$('insulin-button-label'),
+        value:$('glucose-value'), gauge:$('gauge'), needle:$('needle'), meter:$('meter-panel'),
+        stateLabel:$('state-label'), bloodCount:$('blood-count'), cellCount:$('cell-count'), observation:$('observation'),
+        receptorLabel:$('receptor-label'), dialog:$('model-dialog')
+      };
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      let particles = [];
+      let insulinSignals = [];
+      let elapsed = 0;
+      let signalUntil = 0;
+      let lastFrame = 0;
+      let nextId = 0;
+      let nextCell = 0;
+      let busy = false;
+      let lastBlood = -1;
+      let lastCell = -1;
+
+      function svgElement(name, attributes) {
+        const element = document.createElementNS(SVG_NS,name);
+        for (const [name,value] of Object.entries(attributes)) element.setAttribute(name,String(value));
+        return element;
+      }
+
+      function createGlucose(x = 51 + Math.random() * 711) {
+        const element = svgElement('g', {'data-kind':'glucose','data-location':'blood'});
+        element.append(svgElement('path',{d:'M0-7 6.1-3.5v7L0 7-6.1 3.5v-7Z',fill:'#efb449',stroke:'#b97919','stroke-width':1.3}));
+        element.append(svgElement('path',{d:'m-2.8-3.2 2.8-1.6 2.8 1.6',fill:'none',stroke:'#ffe7ad','stroke-width':1.2,'stroke-linecap':'round'}));
+        const particle = { id:nextId++, element, mode:'blood', x, y:159 + Math.random()*86, baseY:159 + Math.random()*86, speed:16+Math.random()*13, phase:Math.random()*Math.PI*2 };
+        particle.y = particle.baseY;
+        element.setAttribute('transform',`translate(${particle.x} ${particle.y})`);
+        ui.glucoseLayer.append(element);
+        particles.push(particle);
+        return particle;
+      }
+
+      function counts() {
+        let cell = 0;
+        for (const particle of particles) if (particle.mode === 'cell') cell++;
+        return { blood:particles.length-cell, cell };
+      }
+
+      function refresh() {
+        const {blood,cell} = counts();
+        if (blood !== lastBlood || cell !== lastCell) {
+          const value = blood * POINTS_PER_PARTICLE;
+          const state = value < 80 ? 'low' : value > 120 ? 'high' : 'mid';
+          const label = state === 'low' ? '低於起始範圍' : state === 'high' ? '高於起始範圍' : '接近起始值';
+          ui.value.value = String(value);
+          ui.bloodCount.textContent = String(blood);
+          ui.cellCount.textContent = String(cell);
+          ui.gauge.setAttribute('aria-valuenow',String(value));
+          ui.gauge.setAttribute('aria-valuetext',`${value}，${label}`);
+          ui.needle.style.transform = `rotate(${-90 + value / 240 * 180}deg)`;
+          ui.meter.dataset.state = state;
+          ui.stateLabel.textContent = label;
+          lastBlood = blood;
+          lastCell = cell;
+        }
+        ui.glucoseButton.disabled = blood >= MAX_BLOOD;
+        ui.insulinButton.disabled = busy || blood === 0;
+        ui.insulinButton.setAttribute('aria-busy',String(busy));
+        ui.insulinLabel.textContent = busy ? '胰島素作用中…' : '分泌胰島素';
+      }
+
+      function addGlucose() {
+        const room = MAX_BLOOD - counts().blood;
+        if (room <= 0) return;
+        const amount = Math.min(PER_ACTION,room);
+        for (let index=0;index<amount;index++) createGlucose(49+Math.random()*90);
+        ui.observation.textContent = counts().blood === MAX_BLOOD
+          ? '已達模型顯示上限。按 B，觀察葡萄糖如何進入細胞。'
+          : '攝取葡萄糖後，血管內的橘色粒子增加，血糖指數上升。';
+        refresh();
+      }
+
+      function targetInCell(cell,index) {
+        // Stable, distinct positions inside each cell; avoid the labels and nuclei.
+        const slot = Math.floor(index/2);
+        const angle = slot * 2.399963229728653;
+        const radius = 9 + 42 * Math.sqrt(((slot*0.61803398875) % 1));
+        return { x:(cell === 0 ? 279 : 533) + Math.cos(angle)*radius, y:389 + Math.sin(angle)*radius*.65 };
+      }
+
+      function releaseInsulin() {
+        if (busy) return;
+        const selected = particles.filter(p => p.mode === 'blood').sort((a,b) => Math.abs(a.x-405)-Math.abs(b.x-405)).slice(0,PER_ACTION);
+        if (!selected.length) return;
+        busy = true;
+        signalUntil = elapsed + (reducedMotion.matches ? .5 : 3.9);
+        ui.svg.classList.add('signal-on');
+        ui.receptorLabel.textContent = '促進葡萄糖進入細胞';
+        ui.observation.textContent = '胰臟釋出綠色胰島素，傳遞訊號，促進肌肉細胞攝取葡萄糖。';
+        const existingCells = counts().cell;
+        selected.forEach((particle,index) => {
+          const cell = nextCell++ % 2;
+          const target = targetInCell(cell,existingCells+index);
+          particle.mode = 'moving';
+          particle.element.dataset.location = 'transit';
+          particle.fromX = particle.x;
+          particle.fromY = particle.y;
+          particle.targetX = target.x;
+          particle.targetY = target.y;
+          particle.gateX = cell === 0 ? 300 : 511;
+          particle.startTime = elapsed + (reducedMotion.matches ? 0 : 1.15 + index*.15);
+          particle.duration = reducedMotion.matches ? .12 : 1.65;
+        });
+        if (!reducedMotion.matches) {
+          for (let index=0;index<8;index++) {
+            const element = svgElement('path',{d:'m0-7 6.5 12h-13Z',fill:'#059789',stroke:'#fff','stroke-width':1});
+            element.setAttribute('transform','translate(663 101)');
+            element.style.opacity = '0';
+            ui.insulinLayer.append(element);
+            insulinSignals.push({element,start:elapsed+index*.1,gateX:index%2 ? 246 : 565});
+          }
+        }
+        refresh();
+      }
+
+      function finishTransfer() {
+        busy = false;
+        const {blood} = counts();
+        ui.observation.textContent = blood === 0
+          ? '血管內已無葡萄糖粒子；葡萄糖轉移到了細胞。可按 A 或重新開始。'
+          : '葡萄糖進入細胞後，血管內的粒子減少，血糖指數下降。';
+        refresh();
+      }
+
+      function reset() {
+        particles = [];
+        insulinSignals = [];
+        ui.glucoseLayer.replaceChildren();
+        ui.insulinLayer.replaceChildren();
+        elapsed = 0;
+        signalUntil = 0;
+        lastFrame = 0;
+        nextId = 0;
+        nextCell = 0;
+        busy = false;
+        lastBlood = -1;
+        lastCell = -1;
+        ui.svg.classList.remove('signal-on');
+        ui.receptorLabel.textContent = '胰島素作用於細胞';
+        for (let index=0;index<INITIAL;index++) createGlucose(54+index*36);
+        ui.observation.textContent = '先按 A 攝取葡萄糖，觀察血管與血糖儀表。';
+        refresh();
+      }
+
+      const smooth = value => value*value*(3-2*value);
+      function frame(timestamp) {
+        const dt = lastFrame ? Math.min((timestamp-lastFrame)/1000,.06) : 0;
+        lastFrame = timestamp;
+        elapsed += dt;
+        let completed = false;
+        for (const particle of particles) {
+          if (particle.mode === 'blood') {
+            if (!reducedMotion.matches) {
+              particle.x += particle.speed*dt;
+              if (particle.x > 771) particle.x = 48;
+              particle.y = particle.baseY + Math.sin(elapsed*.9+particle.phase)*2.5;
+            }
+          } else if (particle.mode === 'moving') {
+            const progress = Math.max(0,Math.min(1,(elapsed-particle.startTime)/particle.duration));
+            if (progress < .55) {
+              const t = smooth(progress/.55);
+              particle.x = particle.fromX + (particle.gateX-particle.fromX)*t;
+              particle.y = particle.fromY + (295-particle.fromY)*t;
+            } else {
+              const t = smooth((progress-.55)/.45);
+              particle.x = particle.gateX + (particle.targetX-particle.gateX)*t;
+              particle.y = 295 + (particle.targetY-295)*t;
+            }
+            if (progress >= 1) {
+              particle.mode = 'cell';
+              particle.element.dataset.location = 'cell';
+              completed = true;
+            }
+          }
+          particle.element.setAttribute('transform',`translate(${particle.x.toFixed(2)} ${particle.y.toFixed(2)})`);
+        }
+        if (completed) refresh();
+        if (busy && !particles.some(p => p.mode === 'moving')) finishTransfer();
+        insulinSignals = insulinSignals.filter(signal => {
+          const age = elapsed-signal.start;
+          if (age < 0) return true;
+          if (age >= 2.6) { signal.element.remove(); return false; }
+          const t = Math.min(1,age/1.2);
+          const x = 663 + (signal.gateX-663)*smooth(t);
+          const y = 104 + (284-104)*smooth(t);
+          signal.element.setAttribute('transform',`translate(${x.toFixed(2)} ${y.toFixed(2)})`);
+          signal.element.style.opacity = String(Math.min(1,age/.15)*Math.max(0,Math.min(1,(2.6-age)/.7)));
+          return true;
+        });
+        if (signalUntil && elapsed >= signalUntil && !busy) {
+          signalUntil = 0;
+          ui.svg.classList.remove('signal-on');
+          ui.receptorLabel.textContent = '胰島素作用於細胞';
+        }
+        requestAnimationFrame(frame);
+      }
+
+      ui.glucoseButton.addEventListener('click',addGlucose);
+      ui.insulinButton.addEventListener('click',releaseInsulin);
+      $('reset-button').addEventListener('click',reset);
+      $('info-button').addEventListener('click',() => ui.dialog.showModal());
+      $('close-dialog').addEventListener('click',() => ui.dialog.close());
+      ui.dialog.addEventListener('click',event => { if (event.target === ui.dialog) { const r=ui.dialog.getBoundingClientRect(); if (event.clientX<r.left || event.clientX>r.right || event.clientY<r.top || event.clientY>r.bottom) {ui.dialog.close();activityLogger.record('dialog_close','model-dialog',{source:'backdrop'});} } });
+      ui.dialog.addEventListener('cancel',() => activityLogger.record('dialog_close','model-dialog',{source:'escape'}));
+      document.addEventListener('keydown',event => {
+        if (event.repeat || event.altKey || event.ctrlKey || event.metaKey || !activityLogger.hasUser() || document.querySelector('dialog[open]') || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName) || event.target.isContentEditable) return;
+        if (event.key.toLowerCase() === 'a' && !ui.glucoseButton.disabled) { event.preventDefault(); ui.glucoseButton.click(); }
+        if (event.key.toLowerCase() === 'b' && !ui.insulinButton.disabled) { event.preventDefault(); ui.insulinButton.click(); }
+      });
+      document.addEventListener('visibilitychange',() => { lastFrame=0; });
+      reset();
+      requestAnimationFrame(frame);
+      activityLogger.init();
+    })();
+  </script>
+</body>
+</html>
